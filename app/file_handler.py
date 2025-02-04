@@ -78,6 +78,6 @@ class FileHandler:
         mode="w",
         ) as zip_archive:
             for path in p.iterdir():
-                zip_archive.write(path)
+                zip_archive.write(path, path.name)
         return zip_buffer.getvalue()
 
