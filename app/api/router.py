@@ -7,29 +7,42 @@ import pathlib
 from fastapi.responses import StreamingResponse, FileResponse, Response
 from app.file_handler import FileHandler
 
+from app.api.endpoints.get_submission import get_submission
 setting=Settings()
 api_router = APIRouter()
 
+class Evaluation:
+    grade: int
+    comment: str
+
 @api_router.get('/submission/get')
-async def get_submission(id, cursor: RealDictCursor = Depends(get_db)):
-    
+async def get_submission(id: int, cursor: RealDictCursor = Depends(get_db)):
     cursor.execute("""
             SELECT * from public.submission s where s.moodle_sub_id=%s
-    """, (id))
-    res = cursor.fetchone()
-    return res
-
+    """, [id])
+    sub = cursor.fetchone()
+    cursor.execute("""
+            SELECT * from public.evaluation e where e.submission_id=%s
+    """, [id])
+    ev=cursor.fetchall()
+    sub['evaluations'] = ev
+    return sub
 
 class Submission(BaseModel):
     moodle_submision_id: int
     status: str
     time_created: str
+    file_links: list[str]
+
+def handle_files(filelinks: list[str]):
+    pass
+
 
 @api_router.post('/submission/postnew')
-async def post_submission(o: Submission, cursor: RealDictCursor = Depends(get_db)):
+async def post_submission(submission: Submission, cursor: RealDictCursor = Depends(get_db)):
     res = cursor.execute("""
             INSERT into public.submission values(%s,%s,%s)
-    """, (o.moodle_submision_id, o.status, o.time_created))
+    """, [submission.moodle_submision_id, submission.status, submission.time_created])
 
     return res
 
@@ -51,5 +64,16 @@ async def create_upload_files(submission_id, file_handler: FileHandler = Depends
 def gen(file: bytes):
     yield file
 
+
+class EvaluationBody(BaseModel):
+    comment: str
+    grade: int
+
+@api_router.post("/evaluation/evaluate")
+async def create_upload_files(submission_id, body: EvaluationBody, cursor: RealDictCursor = Depends(get_db)):
+    cursor.execute(
+        "INSERT INTO public.evaluation(submission_id,grade,comment) values(%s, %s, %s)", 
+        (submission_id, body.grade, body.comment))
+    return 1
 
     
