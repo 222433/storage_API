@@ -35,8 +35,8 @@ class Submission(BaseModel):
         file_url: str
         mime_type: str
     moodle_submision_id: int
-    status: str
     time_created: str
+    assignment_id: int
     file_links: list[FileSubmit]
 
 async def handle_files(filelinks: list[Submission.FileSubmit], submission_id: int):
@@ -51,8 +51,8 @@ async def handle_files(filelinks: list[Submission.FileSubmit], submission_id: in
 async def post_submission(submission: Submission, cursor: RealDictCursor = Depends(get_db)):
     await handle_files(submission.file_links, submission.moodle_submision_id)
     res = cursor.execute("""
-            INSERT into public.submission(moodle_sub_id,status,time_created) values(%s,%s,%s)
-    """, [submission.moodle_submision_id, submission.status, submission.time_created])
+            INSERT into public.submission(moodle_sub_id,assignment_id,time_created) values(%s,%s,%s)
+    """, [submission.moodle_submision_id, submission.assignment_id, submission.time_created])
     return res
 
 @api_router.post("/submission/uploadfiles")
