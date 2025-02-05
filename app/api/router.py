@@ -41,7 +41,7 @@ class Submission(BaseModel):
 
 async def handle_files(filelinks: list[Submission.FileSubmit], submission_id: int):
     for link in filelinks:
-        res=requests.get("http://localhost:8000/submission/",
+        res=requests.get("http://localhost:8000/submission/moodle/download_file",
                      {"file_name": link.file_name, "file_url": link.file_url, "mime_type": link.mime_type})
         await file_handler.store_binary_file(res.content, link.file_name, link.mime_type, submission_id)
     pass
