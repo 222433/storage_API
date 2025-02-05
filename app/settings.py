@@ -5,4 +5,4 @@ class Settings:
             self.DB_PASSWORD='root1234'
             self.DB_HOST='localhost'
             self.DB_PORT=5455
-            self.STORAGE_BASE_DIR='/storage_api'
+            self.STORAGE_BASE_DIR='/tasks'
