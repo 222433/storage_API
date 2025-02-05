@@ -15,7 +15,22 @@ class FileHandler:
         settings = Settings()
         self.storage_base_dir = Path(settings.STORAGE_BASE_DIR)
         self.storage_base_dir.mkdir(parents=True, exist_ok=True)
-
+    
+    async def store_binary_file(self, bytes: bytes, filename: str, mime_type: str, submission_id: int):
+        storage_path = self._create_storage_path(submission_id)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        unique_filename = f"{timestamp}_{filename}"
+        destination_path = storage_path / unique_filename
+        try:
+            content = bytes
+            with destination_path.open("wb") as buffer:
+                buffer.write(content)
+                return self._get_file_info(destination_path, filename)
+        except Exception as e:
+            if destination_path.exists():
+                destination_path.unlink()
+            raise e
+        
     async def store_file(self, file: UploadFile, sumbission_id: int) -> dict:
         """Store an uploaded file"""
         try:
