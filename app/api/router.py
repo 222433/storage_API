@@ -7,14 +7,12 @@ import pathlib
 from fastapi.responses import StreamingResponse, FileResponse, Response
 from app.file_handler import FileHandler
 import requests
-
+from typing import Optional
+from sqlmodel import Field, Session, SQLModel, create_engine, select
+engine = create_engine("postgresql://rootDB:root1234@localhost:5455/uni_db")
 setting=Settings()
 api_router = APIRouter()
 file_handler: FileHandler = FileHandler()
-
-class Evaluation:
-    grade: int
-    comment: str
 
 @api_router.get('/submission/get')
 async def get_submission(id: int, cursor: RealDictCursor = Depends(get_db)):
@@ -29,7 +27,33 @@ async def get_submission(id: int, cursor: RealDictCursor = Depends(get_db)):
     sub['evaluations'] = ev
     return sub
 
-class Submission(BaseModel):
+
+''''''
+class Submission(SQLModel, table=True):
+    id: int = Field(default=None, primary_key=True)
+    moodle_sub_id: int
+    time_created: str
+    assignment_id: Optional[int] = None
+
+class Evaluation(SQLModel, table=True):
+    id: int = Field(default=None, primary_key=True)
+    grade: int
+    comment: str
+    submission_id: int = Field(foreign_key="submission.id")
+
+
+@api_router.get('/submission/getbyassignment')
+async def get_submission(assignment: int, cursor: RealDictCursor = Depends(get_db)):
+    with Session(engine) as session:
+        statement = select(Submission).where(Submission.assignment_id == assignment)
+        res = session.exec(statement).fetchall()
+        #return res
+        print()
+    return res
+
+''''''
+
+class Submission2(BaseModel):
     class FileSubmit(BaseModel):
         file_name: str
         file_url: str
@@ -39,7 +63,7 @@ class Submission(BaseModel):
     assignment_id: int
     file_links: list[FileSubmit]
 
-async def handle_files(filelinks: list[Submission.FileSubmit], submission_id: int):
+async def handle_files(filelinks: list[Submission2.FileSubmit], submission_id: int):
     for link in filelinks:
         res=requests.get("http://localhost:8000/submission/moodle/download_file",
                      {"file_name": link.file_name, "file_url": link.file_url, "mime_type": link.mime_type})
@@ -48,12 +72,15 @@ async def handle_files(filelinks: list[Submission.FileSubmit], submission_id: in
 
 
 @api_router.post('/submission/postnew')
-async def post_submission(submission: Submission, cursor: RealDictCursor = Depends(get_db)):
+async def post_submission(submission: Submission2, cursor: RealDictCursor = Depends(get_db)):
     await handle_files(submission.file_links, submission.moodle_submision_id)
     res = cursor.execute("""
             INSERT into public.submission(moodle_sub_id,assignment_id,time_created) values(%s,%s,%s)
     """, [submission.moodle_submision_id, submission.assignment_id, submission.time_created])
     return res
+
+''''''
+
 
 @api_router.post("/submission/uploadfiles")
 async def create_upload_files(submission_id, files: list[UploadFile], file_handler: FileHandler = Depends(FileHandler), cursor: RealDictCursor = Depends(get_db)):
