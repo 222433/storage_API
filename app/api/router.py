@@ -8,8 +8,6 @@ from fastapi.responses import StreamingResponse, FileResponse, Response
 from app.file_handler import FileHandler
 import requests
 
-from app.api.endpoints.get_submission import get_submission
-
 setting=Settings()
 api_router = APIRouter()
 file_handler: FileHandler = FileHandler()
